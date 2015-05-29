@@ -1,5 +1,4 @@
-This is a C source code for simulating both GBN protocol and selective repeat protocol in rdt.
-However, we finally only get GBN run.
+This is a C source code for simulating GBN protocol in rdt.
 
 The structure of our code: 
 Application layer:
