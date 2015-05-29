@@ -6,8 +6,7 @@ Application layer:
 client.c client.h Server.c
 
 DataLink Layer/physical layer:
-DLL.c dllgen.h (for go-back-N protocol)
-SR.c slgen.h (for selective repeat protocol)
+DLL.c dllgen.h (for go-back-N protocol
 
 How to compile:
 you type make in your command line. Then it just help you compile C code.
@@ -31,12 +30,12 @@ This application layer has several commands just like what we stated above
 This implementation could be seen in DLL.c source code, and also in our performance graph, you can see the specific performance in real 
 GBN transmission with different packet loss and packet corruption rate.
 
-3. Correct implementation of Selective Repeat protocol – Partially 
-Due to the time, we do not have the time to finish this part. But we design this .c and .h code file to implement.
+3. Correct implementation of Selective Repeat protocol – No
+Due to the time, we do not have the time to finish this part.
 
 4. Correct implementation of queuing, checksum, and the inter-layer interfaces – Yes 
-We have a queue.h and queue.c in our folder. So we use queue implementation to help us simulate rdt transmission. And we have client/server file for application layer
-,with DLL.c/DLL.h file to implement both link layer  and physical layer.
+We use queue implementation to help us simulate rdt transmission. And we have client/server file for application layer
+,with DLL.c/DLL.h file to implement both link layer and physical layer.
 
 5. Full implementation of Physical Layer with data corruption and packet drop – Yes
 We could enable user to input packet loss/packet corruption rate. 
