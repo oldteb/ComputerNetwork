@@ -1,8 +1,16 @@
-//	dllgen.h
+/************************************************************************
+    
+    dllgen.h  
+
+    This file contains macros, variables, and 
+    definitions of data structure that are used 
+    by the system.
+    
+************************************************************************/
 
 #define         TRUE            1
 
-#define 	DLL_BUFSIZE		8388608		// 8M tcp buffer...
+#define     DLL_BUFSIZE     8388608     // 8M tcp buffer...
 #define     WINDOW_SIZE     2097152        // 2M Send window size
 #define     TOP             ((dll_scb.base + WINDOW_SIZE)%DLL_BUFSIZE)
 #define     MSS             1024        // DLL segment maximum length
@@ -22,7 +30,7 @@
 //#define     TRACE
  
 
-//	Globel variable...
+//  Globel variable...
 typedef struct DLL_send{
     char DLL_buffer[DLL_BUFSIZE];       // DLL sender buffer
     int base;               // Send window base pointer

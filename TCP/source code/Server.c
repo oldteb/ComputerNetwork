@@ -1,3 +1,17 @@
+/************************************************************************
+    
+    Server.c  
+
+    Author:                 Yunhe Tang
+
+    Complete Time:          3/12/2014 
+
+    This code constructs the server side of a simple FTP
+    application. It allows user to download, upload, and
+    lookup files on FTP server.  
+
+************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,13 +22,13 @@
 #include <dirent.h>
 #include "dllgen.h"
 
-#define         SIZE_SNDBUF     100
-#define         SIZE_RCVBUF     1024
-#define         CLTCOMMDSIZE    5
+#define         SIZE_SNDBUF         100
+#define         SIZE_RCVBUF         1024
+#define         CLTCOMMDSIZE        5
 #define         progress_h
-#define         PROGRESS_NUM_STYLE 0
-#define         PROGRESS_CHR_STYLE 1
-#define         PROGRESS_BGC_STYLE 2
+#define         PROGRESS_NUM_STYLE  0
+#define         PROGRESS_CHR_STYLE  1
+#define         PROGRESS_BGC_STYLE  2
           
 
 char* CltCommands[CLTCOMMDSIZE] = {"#HELP","#UPLOAD","#DOWNLOAD","#FILELIST","#QUIT"};
@@ -46,12 +60,7 @@ int main(){
     char temp[1024] = {0};
     int temp_len = 0;
 
-    //usleep(100000);
-
     DLL_Init();
-
-    //printf("%d %d\n", dll_scb.nextsend, dll_scb.last);
-    //strcpy(dll_scb.DLL_buffer, "thread test!\n");
 
     sockfd=socket(AF_INET,SOCK_STREAM,0);
     if(sockfd<0){
@@ -79,15 +88,9 @@ int main(){
     for(;TRUE ;msg_len = 0){
         printf("waiting for new connection:\n");
         clientfd=accept(sockfd,(struct sockaddr *)&client_addr,&len);
-        /* recv(clientfd,buffer,256,0);*/
         while(TRUE){
-            //temp_len = DataLinkRecv(clientfd, temp, 1024);
-            //printf("hohoho:%s, %d\n", temp, temp_len);
-
-            //continue;
             memset(buffer,0,sizeof(buffer));
             printf("waiting user command:\n");
-            //msg_len = read(clientfd,buffer,SIZE_RCVBUF);
             msg_len = DataLinkRecv(clientfd,buffer,SIZE_RCVBUF);
 
             if(msg_len == 0){
@@ -102,7 +105,6 @@ int main(){
                 RequestHandler(buffer, msg_len);
             }
             else{
-                //write(clientfd, "#INVLD",7);
                 DataLinkSend(clientfd, "#INVLD", 7);
             }   
         }
@@ -140,7 +142,6 @@ int RequestHandler(char * buffer, int msg_len){
             break;
 
         default:
-            //write(clientfd, "#INVLD",7);
             DataLinkSend(clientfd, "#INVLD",7);
             break; 
     }
@@ -154,7 +155,6 @@ int ClientCmdRecognize(char* buffer, int message_length){
 
     strncpy(commd,buffer,message_length);
     commd[message_length] = '\0';
-    //printf("%s\n", commd);
     for(i=0;i<CLTCOMMDSIZE;i++){
         if(strcmp(commd,CltCommands[i])==0)  break;
     }
@@ -168,7 +168,6 @@ int processHelp(char * buffer, int msg_len){
     strncpy(rsp_buffer, buffer, msg_len);
     strcat(rsp_buffer, "_ACK");
 
-    //write(clientfd, rsp_buffer,strlen(rsp_buffer));
     DataLinkSend(clientfd, rsp_buffer, strlen(rsp_buffer));
 
     return 0;
@@ -185,7 +184,6 @@ int processUpload(char * buffer, int msg_len){
     FILE *fp = NULL;
     int file_percentage = 0;
 
-    //length = read(clientfd, fname, SIZE_RCVBUF);
     length = DataLinkRecv(clientfd, fname, SIZE_RCVBUF);
 
     p = strstr(fname, "#");
@@ -210,7 +208,6 @@ int processUpload(char * buffer, int msg_len){
     progress_init(&bar, "", 50, PROGRESS_BGC_STYLE);
 
     do{
-        //len = recv(clientfd, rcv_buffer, SIZE_RCVBUF, 0);
         DataLinkRecv(clientfd, rcv_buffer, SIZE_RCVBUF);
         length += len;
         fwrite(rcv_buffer, sizeof(char), len, fp);
@@ -223,6 +220,7 @@ int processUpload(char * buffer, int msg_len){
     }while(TRUE);
     progress_destroy(&bar);
     printf("\nFile %s uploading Finished!\n", fname); 
+
     // close the file pointer  
     fclose(fp);
     return 0;
@@ -233,7 +231,6 @@ int processDownload(char * buffer, int msg_len){
     char fname[SIZE_RCVBUF] = {0};
     char rsp_buffer[SIZE_RCVBUF] = {0};
 
-    //read(clientfd,fname,SIZE_RCVBUF);
     DataLinkRecv(clientfd,fname,SIZE_RCVBUF);
     transfer(fname);
 
@@ -243,10 +240,6 @@ int processDownload(char * buffer, int msg_len){
 
 
 int processFilelist(char * buffer, int msg_len){
-    // char rsp_buffer[BUF_SIZE] = {0};
-    // strncpy(rsp_buffer, buffer, msg_len);
-    // strcat(rsp_buffer, "_ACK");
-    // write(clientfd, rsp_buffer,strlen(rsp_buffer));
     getFileList();
     return 0;
 }
@@ -256,7 +249,6 @@ int processQuit(char * buffer, int msg_len){
     char rsp_buffer[SIZE_SNDBUF] = {0};
     strncpy(rsp_buffer, buffer, msg_len);
     strcat(rsp_buffer, "_ACK");
-    //write(clientfd, rsp_buffer,strlen(rsp_buffer));
     DataLinkSend(clientfd, rsp_buffer,strlen(rsp_buffer));
     return 0;
 }
@@ -273,7 +265,6 @@ int transfer(char * fname){
     strcat(fpath, fname);
     if((fp = fopen(fpath, "r")) == NULL){
         fclose(fp);
-        //write(clientfd, "#FILE_NOT_FOUND",16);
         DataLinkSend(clientfd, "#FILE_NOT_FOUND",16);
         return 0;
     }  
@@ -281,9 +272,7 @@ int transfer(char * fname){
         //  File existed...
         printf("File %s is downloading...\n", fname);
         fsize = getFileSize(fpath);
-        //itoa(fsize, buffer, 10);
         sprintf(buffer, "%d", fsize);
-        //write(clientfd, buffer,strlen(buffer));
         DataLinkSend(clientfd, buffer,strlen(buffer));
         memset(buffer, 0, sizeof(buffer));
         sleep(2);
@@ -295,17 +284,16 @@ int transfer(char * fname){
                 break;
             }
             else if(act_read < SIZE_SNDBUF){
-                //write(clientfd, buffer, act_read);
                 DataLinkSend(clientfd, buffer, act_read);
                 break;
             }
             else{
-                //write(clientfd, buffer, act_read);
                 DataLinkSend(clientfd, buffer, act_read);
                 memset(buffer, 0, SIZE_SNDBUF);
             }
             continue;
         }while(TRUE);
+
         printf("File transfer ended.\n");
         fclose(fp);
     }
@@ -313,13 +301,6 @@ int transfer(char * fname){
 
     return 0;
 }
-
-
-// int getFileSizeSystemCall(char * strFileName){  
-//     struct stat temp;
-//     stat(strFileName, &temp);  
-//     return temp.st_size;  
-// }
 
 
 int getFileSize(char * strFileName)   
@@ -365,7 +346,7 @@ int getFileList(){
             strcat(buffer, "\n");
             node=node->next;
         }
-        //write(clientfd, buffer, strlen(buffer));
+        
         DataLinkSend(clientfd, buffer, strlen(buffer));
     }
 

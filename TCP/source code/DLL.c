@@ -1,3 +1,24 @@
+/************************************************************************
+    
+    DLL.c  
+
+    Author:                 Yunhe Tang
+                            Yumou Wang
+
+    Complete Time:          4/15/2014 
+
+    This code forms the base of the TCP layer and Physical layer
+    that we build. It provides interfaces for upper layer to send
+    and receive data to guarantee reliable data transmission. The
+    physical layer will imitate the actual network condition by
+    discarding packages in specific possibilities.
+
+    Contribution:
+    TCP layer               Yunhe Tang
+    Physical layer          Yumou Wang
+
+************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +36,9 @@
 #include <signal.h>
 #include "dllgen.h"
 
+
+//#define     DEBUG
+//#define     TRACE
 
 int Packet_Loss_Rate = 20;
 int Packet_Corruption_Rate = 0;
@@ -59,27 +83,18 @@ void TimerStop(int );
 void DLL_SetStr();
 
 
-//pthread_mutex_t lock;
-//pthread_mutex_t clientlock;
-
 FILE* fp;
 FILE* fp2;
 
 void DLL_Init(){
-	pthread_t cons_tid1;
-	pthread_t cons_tid2;
+    pthread_t cons_tid1;
+    pthread_t cons_tid2;
 
-	//Initialize data link layer controll block...
+    //Initialize data link layer controll block...
     DLL_SetStr();
-
-    //pthread_mutex_init(&lock, NULL);
 
     memset(&it_val, 0, sizeof(it_val));
     signal(SIGALRM, Timer_handler);
-
-    // if((fp = fopen("stats","w")) == NULL){
-    //     printf("Unable to open the file\n");
-    // }
 
     // Initialize time seed for randgen...
     init_random();
@@ -103,10 +118,8 @@ int DataLinkSend(int sockfd, char * buf, int len){
     {
         while(1)
         {
-            //pthread_mutex_lock(&lock);
             avalspace = CalSendAvalSpace();
             if(avalspace < len){
-                //pthread_mutex_unlock(&lock);
                 sleep(1);
                 continue;
             }
@@ -130,16 +143,15 @@ int DataLinkSend(int sockfd, char * buf, int len){
                 }
 
                 #ifdef  TRACE
-                //printDLL_scb("DataLinkSend");
+                printDLL_scb("DataLinkSend");
                 #endif
-                //pthread_mutex_unlock(&lock);
+
                 return len;
             }
         }
     }
     else
     {
-        //len > MSG_SIZE = 100bytes
         printf("ERROR:data to send larger than 100 Bytes!\n");
         return -1;
     }
@@ -158,34 +170,28 @@ int DataLinkRecv(int sockfd, char * buf, int len){
             continue;
         }
 
-        /*if(dll_rcb.status == 2){
-            //  Loss TCP connection...
-            DLL_SetStr();
-            return 0;
-        }*/
-
-
         if(dll_rcb.last >= dll_rcb.nextread){
-            //pthread_mutex_lock(&lock);
             int Recv_Unread = dll_rcb.last - dll_rcb.nextread + 1;
             if(len >= (Recv_Unread)){
                 memcpy(buf, dll_rcb.DLL_buffer + dll_rcb.nextread, Recv_Unread);
                 dll_rcb.nextread = (dll_rcb.nextread + Recv_Unread)%DLL_BUFSIZE;
                 dll_rcb.avalsize += Recv_Unread;
+
                 #ifdef  TRACE
-                //printDLL_rcb("DataLinkRecv");
+                printDLL_rcb("DataLinkRecv");
                 #endif
-                //pthread_mutex_unlock(&lock);
+
                 return Recv_Unread;
             }
             else{
                 memcpy(buf, dll_rcb.DLL_buffer + dll_rcb.nextread, len);
                 dll_rcb.nextread = (dll_rcb.nextread + len)%DLL_BUFSIZE;
                 dll_rcb.avalsize += Recv_Unread;
+
                 #ifdef  TRACE
-                //printDLL_rcb("DataLinkRecv");
+                printDLL_rcb("DataLinkRecv");
                 #endif
-                //pthread_mutex_unlock(&lock);
+
                 return len;
             }
         }
@@ -195,26 +201,27 @@ int DataLinkRecv(int sockfd, char * buf, int len){
             continue;
         }
         else{
-            //pthread_mutex_lock(&lock);
             int Recv_Unread = DLL_BUFSIZE - dll_rcb.nextread + dll_rcb.last + 1;
             if(len >= (Recv_Unread)){
                 StringCopyRecvBuffer(buf, Recv_Unread);
                 dll_rcb.nextread = (dll_rcb.nextread + Recv_Unread + 1)%DLL_BUFSIZE;
                 dll_rcb.avalsize += Recv_Unread;
+
                 #ifdef  TRACE
                 //printDLL_rcb("DataLinkRecv");
                 #endif
-                //pthread_mutex_unlock(&lock);
+
                 return Recv_Unread;
             }
             else{
                 memcpy(buf, dll_rcb.DLL_buffer + dll_rcb.nextread, len);
                 dll_rcb.nextread = StringCopyRecvBuffer(buf, Recv_Unread) + 1;
                 dll_rcb.avalsize += Recv_Unread;
+
                 #ifdef  TRACE
                 //printDLL_rcb("DataLinkRecv");
                 #endif
-                //pthread_mutex_unlock(&lock);
+
                 return len;
             }
         }
@@ -235,9 +242,7 @@ void DLL_send_thread(void){
         }
         else{
             // there is not data pending to be send out...
-            //pthread_mutex_lock(&lock);
             DLL_StartSend();
-            //pthread_mutex_unlock(&lock);
         }
     }
 }
@@ -249,7 +254,7 @@ void DLL_recv_thread(void){
     int checksum = 0;
     int acknum = 0;
     char buf[BUF_SIZE] = {0};
-    char realPacket[BUF_SIZE] = {0};//real packet after truncating unecessary headers
+    char realPacket[BUF_SIZE] = {0};  //real packet after truncating unecessary headers
     char tb[BUF_SIZE] = {0};
     while(TRUE)
     {
@@ -259,22 +264,11 @@ void DLL_recv_thread(void){
         memset(buf, 0, sizeof(buf));
         memset(realPacket, 0, sizeof(realPacket));
 
-        //pkg_len = recv(clientfd,buf,125,0);
         pkg_len = PhysicalLayerRecv(clientfd,buf,sizeof(buf));
         if(pkg_len <= 0){
-            /*if(dll_rcb.status != 0 && dll_scb.status != 0){
-                //  Loss TCP connection, Reinitialize DLL structure...
-                dll_rcb.status = 2;    // Reset DLL...
-            }*/
             sleep(1);
             continue;
         }
-        /*else if(pkg_len == 0){
-            //  Loss TCP connection, Reinitialize DLL structure...
-            dll_rcb.status = 2;    // Reset DLL...
-            usleep(1000000);
-            continue;
-        }*/
 
         #ifdef TRACE
         #endif
@@ -282,11 +276,6 @@ void DLL_recv_thread(void){
         //  Check checksum
         if(Checksumcheck(buf, pkg_len) != 1){
             //  Data corrupted,discrad packet...
-            //printf("[[[[%d]]]]\n", pkg_len);
-            //memcpy(tb, buf, pkg_len);
-            //tb[pkg_len] = '\0';
-            //printf("%s\n", tb);
-            //printf("Checksum failed : %s\n",buf);
             continue;
         }
 
@@ -316,9 +305,6 @@ int DLL_StartSend(){
     int i = 0;
     int ascii = 0;
 
-    #ifdef DEBUG
-    #endif
-
     if(dll_scb.last >= dll_scb.nextsend){
         data_unsend = dll_scb.last - dll_scb.nextsend + 1;
     }
@@ -336,9 +322,6 @@ int DLL_StartSend(){
         return 0;
     }
 
-    #ifdef DEBUG
-    #endif
-
     // Add DLL header...
     memcpy(segbuffer, dll_scb.DLL_buffer+dll_scb.nextsend, maxsendsize);
     // Start timer...
@@ -346,10 +329,6 @@ int DLL_StartSend(){
         //  Start timer...
         TimerStart(timer_interval, 1);
     }
-
-    #ifdef DEBUG
-    #endif
-
 
     AddDLLHeader(segbuffer, dll_scb.nextsend, maxsendsize);
     fp = fopen("stats","a");
@@ -360,14 +339,11 @@ int DLL_StartSend(){
     // Deliver sending data to lower layer...
     a = PhysicalLayerSend(clientfd, segbuffer, maxsendsize + 25);
 
-    #ifdef  DEBUG
-    #endif
-
     // Modify DLL controll block...
     dll_scb.nextsend = (dll_scb.nextsend + maxsendsize) % DLL_BUFSIZE;
 
     #ifdef  TRACE
-    //printDLL_scb("DLL_StartSend");
+    printDLL_scb("DLL_StartSend");
     #endif
 
     //  Return the actual len of 
@@ -787,7 +763,6 @@ int Data_handler(char * buf, int pkg_len){
         else{
             //  Duplicate packet received...
             //  Discard packet...
-
         }
     }
     return 0;
