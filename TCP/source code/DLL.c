@@ -86,20 +86,31 @@ void DLL_SetStr();
 FILE* fp;
 FILE* fp2;
 
+
+/*********************************************************************
+    DLL_Init
+        Initialize the data link layer. Set up signal and random seed.
+        Create send and recv thread.
+
+**********************************************************************/
+
 void DLL_Init(){
     pthread_t cons_tid1;
     pthread_t cons_tid2;
 
-    //Initialize data link layer controll block...
+    // Initialize data link layer controll block
     DLL_SetStr();
 
+    // Initialize data link layer structure
     memset(&it_val, 0, sizeof(it_val));
+
+    // ...
     signal(SIGALRM, Timer_handler);
 
-    // Initialize time seed for randgen...
+    // Initialize time seed for randgen
     init_random();
 
-    //Initialize snd/rcv process...
+    // Initialize snd/rcv process
     if(pthread_create(&cons_tid1, NULL, (void *)DLL_send_thread, NULL)){
         printf("Error in creating thread...\n");
     }
@@ -109,12 +120,19 @@ void DLL_Init(){
 
 }
 
+
+/*********************************************************************
+    DataLinkSend
+        Interface provided to application layer to send data.
+
+**********************************************************************/
+
 int DataLinkSend(int sockfd, char * buf, int len){
     int avalspace = 0;
 
     #ifdef DEBUG
     #endif
-    if(len <= MSG_SIZE)
+    if(len <= MSG_SIZE)  
     {
         while(1)
         {
@@ -237,11 +255,11 @@ void DLL_send_thread(void){
             continue;
         }
         else if(dll_scb.nextsend == dll_scb.last+1){
-            //  there is not data pending to be send out...
+            //  there is no data pending to be send out...
             continue;
         }
         else{
-            // there is not data pending to be send out...
+            // there is some data pending to be send out...
             DLL_StartSend();
         }
     }
